@@ -94,8 +94,4 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  @override
-  Stream<UserEntity?> get authStateChanges {
-    return remoteDataSource.authStateChanges;
-  }
 }

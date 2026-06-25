@@ -1,5 +1,5 @@
+import 'package:appwrite/appwrite.dart';
 import 'package:injectable/injectable.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
@@ -22,14 +22,14 @@ abstract class AuthRemoteDataSource {
 
   Future<UserModel?> getCurrentUser();
 
-  Stream<UserModel?> get authStateChanges;
+  Future<void> updateUserPrefs(Map<String, dynamic> prefs);
 }
 
 @LazySingleton(as: AuthRemoteDataSource)
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final SupabaseClient supabaseClient;
+  final Account _account;
 
-  AuthRemoteDataSourceImpl(this.supabaseClient);
+  AuthRemoteDataSourceImpl(this._account);
 
   @override
   Future<UserModel> signInWithEmailAndPassword({
@@ -37,18 +37,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      final response = await supabaseClient.auth.signInWithPassword(
+      await _account.createEmailSession(
         email: email,
         password: password,
       );
 
-      if (response.user == null) {
-        throw Exception('No se pudo iniciar sesión');
-      }
-
-      return UserModel.fromSupabaseUser(response.user!);
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      final user = await _account.get();
+      return UserModel.fromAppwriteUser(user);
+    } on AppwriteException catch (e) {
+      throw Exception(e.message ?? 'Error al iniciar sesión');
     } catch (e) {
       throw Exception('Error al iniciar sesión: $e');
     }
@@ -61,19 +58,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? displayName,
   }) async {
     try {
-      final response = await supabaseClient.auth.signUp(
+      await _account.create(
+        userId: ID.unique(),
         email: email,
         password: password,
-        data: displayName != null ? {'display_name': displayName} : null,
+        name: displayName ?? '',
       );
 
-      if (response.user == null) {
-        throw Exception('No se pudo crear la cuenta');
-      }
+      // Iniciar sesión después del registro
+      await _account.createEmailSession(
+        email: email,
+        password: password,
+      );
 
-      return UserModel.fromSupabaseUser(response.user!);
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      final user = await _account.get();
+      return UserModel.fromAppwriteUser(user);
+    } on AppwriteException catch (e) {
+      throw Exception(e.message ?? 'Error al registrarse');
     } catch (e) {
       throw Exception('Error al registrarse: $e');
     }
@@ -84,9 +85,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
   }) async {
     try {
-      await supabaseClient.auth.resetPasswordForEmail(email);
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      await _account.createRecovery(
+        email: email,
+        url: 'loginpro://reset-password',
+      );
+    } on AppwriteException catch (e) {
+      throw Exception(e.message ?? 'Error al enviar email de recuperación');
     } catch (e) {
       throw Exception('Error al enviar email de recuperación: $e');
     }
@@ -95,9 +99,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> signOut() async {
     try {
-      await supabaseClient.auth.signOut();
-    } on AuthException catch (e) {
-      throw Exception(e.message);
+      await _account.deleteSession(sessionId: 'current');
+    } on AppwriteException catch (e) {
+      throw Exception(e.message ?? 'Error al cerrar sesión');
     } catch (e) {
       throw Exception('Error al cerrar sesión: $e');
     }
@@ -106,20 +110,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel?> getCurrentUser() async {
     try {
-      final user = supabaseClient.auth.currentUser;
-      if (user == null) return null;
-      return UserModel.fromSupabaseUser(user);
+      final user = await _account.get();
+      return UserModel.fromAppwriteUser(user);
+    } on AppwriteException {
+      return null;
     } catch (e) {
-      throw Exception('Error al obtener usuario actual: $e');
+      return null;
     }
   }
 
   @override
-  Stream<UserModel?> get authStateChanges {
-    return supabaseClient.auth.onAuthStateChange.map((event) {
-      final user = event.session?.user;
-      if (user == null) return null;
-      return UserModel.fromSupabaseUser(user);
-    });
+  Future<void> updateUserPrefs(Map<String, dynamic> prefs) async {
+    try {
+      await _account.updatePrefs(prefs: prefs);
+    } on AppwriteException catch (e) {
+      throw Exception(e.message ?? 'Error al actualizar preferencias');
+    }
   }
 }

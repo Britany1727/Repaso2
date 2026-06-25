@@ -1,8 +1,7 @@
 import 'dart:typed_data';
+import 'package:appwrite/appwrite.dart';
 import 'package:injectable/injectable.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-const _bucketName = 'actas_escrutinio';
+import '../../../../core/constants/app_constants.dart';
 
 abstract class ActaRemoteDataSource {
   Future<String> uploadImage({
@@ -10,15 +9,13 @@ abstract class ActaRemoteDataSource {
     required String fileName,
     required String userId,
   });
-
-  Future<String> getPublicUrl(String path);
 }
 
 @LazySingleton(as: ActaRemoteDataSource)
 class ActaRemoteDataSourceImpl implements ActaRemoteDataSource {
-  final SupabaseClient _supabase;
+  final Storage _storage;
 
-  ActaRemoteDataSourceImpl(this._supabase);
+  ActaRemoteDataSourceImpl(this._storage);
 
   @override
   Future<String> uploadImage({
@@ -26,22 +23,15 @@ class ActaRemoteDataSourceImpl implements ActaRemoteDataSource {
     required String fileName,
     required String userId,
   }) async {
-    final path = 'users/$userId/actas/$fileName';
+    final file = await _storage.createFile(
+      bucketId: AppConstants.actasBucketId,
+      fileId: ID.unique(),
+      file: InputFile.fromBytes(
+        bytes: imageBytes,
+        filename: '$userId/actas/$fileName',
+      ),
+    );
 
-    await _supabase.storage.from(_bucketName).uploadBinary(
-          path,
-          imageBytes,
-          fileOptions: const FileOptions(
-            contentType: 'image/jpeg',
-            upsert: true,
-          ),
-        );
-
-    return path;
-  }
-
-  @override
-  Future<String> getPublicUrl(String path) async {
-    return _supabase.storage.from(_bucketName).getPublicUrl(path);
+    return file.$id;
   }
 }

@@ -9,6 +9,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:appwrite/appwrite.dart' as _i317;
 import 'package:connectivity_plus/connectivity_plus.dart' as _i895;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
@@ -42,7 +43,6 @@ import 'package:login_pro/features/auth/domain/usecases/sign_out.dart' as _i427;
 import 'package:login_pro/features/auth/domain/usecases/sign_up.dart' as _i369;
 import 'package:login_pro/features/auth/presentation/bloc/auth_bloc.dart'
     as _i746;
-import 'package:supabase_flutter/supabase_flutter.dart' as _i454;
 
 extension GetItInjectableX on _i174.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -57,24 +57,29 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i505.NetworkInfo>(
         () => _i505.NetworkInfoImpl(gh<_i895.Connectivity>()));
-    gh.lazySingleton<_i383.AuthRemoteDataSource>(
-        () => _i383.AuthRemoteDataSourceImpl(gh<_i454.SupabaseClient>()));
-    gh.lazySingleton<_i638.AuthRepository>(() => _i12.AuthRepositoryImpl(
-          remoteDataSource: gh<_i383.AuthRemoteDataSource>(),
-          networkInfo: gh<_i505.NetworkInfo>(),
-        ));
     gh.lazySingleton<_i806.ActaRemoteDataSource>(
-        () => _i806.ActaRemoteDataSourceImpl(gh<_i454.SupabaseClient>()));
+        () => _i806.ActaRemoteDataSourceImpl(gh<_i317.Storage>()));
     gh.lazySingleton<_i908.ActaRepository>(() => _i38.ActaRepositoryImpl(
           remoteDataSource: gh<_i806.ActaRemoteDataSource>(),
           networkInfo: gh<_i505.NetworkInfo>(),
         ));
+    gh.lazySingleton<_i383.AuthRemoteDataSource>(
+        () => _i383.AuthRemoteDataSourceImpl(gh<_i317.Account>()));
     gh.factory<_i186.ExtractActaData>(
         () => _i186.ExtractActaData(gh<_i908.ActaRepository>()));
     gh.factory<_i937.UploadActa>(
         () => _i937.UploadActa(gh<_i908.ActaRepository>()));
     gh.factory<_i232.ValidateImageQuality>(
         () => _i232.ValidateImageQuality(gh<_i908.ActaRepository>()));
+    gh.lazySingleton<_i638.AuthRepository>(() => _i12.AuthRepositoryImpl(
+          remoteDataSource: gh<_i383.AuthRemoteDataSource>(),
+          networkInfo: gh<_i505.NetworkInfo>(),
+        ));
+    gh.factory<_i900.ActaBloc>(() => _i900.ActaBloc(
+          validateImageQuality: gh<_i232.ValidateImageQuality>(),
+          uploadActa: gh<_i937.UploadActa>(),
+          account: gh<_i317.Account>(),
+        ));
     gh.factory<_i496.GetCurrentUser>(
         () => _i496.GetCurrentUser(gh<_i638.AuthRepository>()));
     gh.factory<_i1002.ResetPassword>(
@@ -82,11 +87,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i1051.SignIn>(() => _i1051.SignIn(gh<_i638.AuthRepository>()));
     gh.factory<_i427.SignOut>(() => _i427.SignOut(gh<_i638.AuthRepository>()));
     gh.factory<_i369.SignUp>(() => _i369.SignUp(gh<_i638.AuthRepository>()));
-    gh.factory<_i900.ActaBloc>(() => _i900.ActaBloc(
-          validateImageQuality: gh<_i232.ValidateImageQuality>(),
-          uploadActa: gh<_i937.UploadActa>(),
-          supabaseClient: gh<_i454.SupabaseClient>(),
-        ));
     gh.factory<_i746.AuthBloc>(() => _i746.AuthBloc(
           signIn: gh<_i1051.SignIn>(),
           signUp: gh<_i369.SignUp>(),

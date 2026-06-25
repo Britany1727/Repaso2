@@ -1,7 +1,7 @@
+import 'package:appwrite/appwrite.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:injectable/injectable.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/usecases/upload_acta.dart';
 import '../../domain/usecases/validate_image_quality.dart';
 import 'acta_event.dart';
@@ -11,15 +11,15 @@ import 'acta_state.dart';
 class ActaBloc extends Bloc<ActaEvent, ActaState> {
   final ValidateImageQuality validateImageQuality;
   final UploadActa uploadActa;
+  final Account _account;
   final ImagePicker _picker;
-  final SupabaseClient _supabase;
 
   ActaBloc({
     required this.validateImageQuality,
     required this.uploadActa,
-    required SupabaseClient supabaseClient,
-  })  : _picker = ImagePicker(),
-        _supabase = supabaseClient,
+    required Account account,
+  })  : _account = account,
+        _picker = ImagePicker(),
         super(const ActaInitial()) {
     on<SelectImageFromCamera>(_onSelectFromCamera);
     on<SelectImageFromGallery>(_onSelectFromGallery);
@@ -122,8 +122,11 @@ class ActaBloc extends Bloc<ActaEvent, ActaState> {
     final currentState = state;
     if (currentState is! ActaImagePicked || !currentState.isSharp) return;
 
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) {
+    String userId;
+    try {
+      final user = await _account.get();
+      userId = user.$id;
+    } catch (e) {
       emit(const ActaError('Debes iniciar sesión para subir actas'));
       return;
     }

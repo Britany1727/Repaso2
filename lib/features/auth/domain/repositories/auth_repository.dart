@@ -21,6 +21,4 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> signOut();
 
   Future<Either<Failure, UserEntity?>> getCurrentUser();
-
-  Stream<UserEntity?> get authStateChanges;
 }

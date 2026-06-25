@@ -8,8 +8,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/config', (req, res) => {
   res.json({
-    supabaseUrl: process.env.SUPABASE_URL,
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    appwriteEndpoint: process.env.APPWRITE_ENDPOINT,
+    appwriteProjectId: process.env.APPWRITE_PROJECT_ID,
   });
 });
 

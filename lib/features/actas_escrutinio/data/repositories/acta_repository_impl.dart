@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
 import '../../../../core/utils/image_quality_validator.dart';
@@ -42,16 +43,17 @@ class ActaRepositoryImpl implements ActaRepository {
     }
 
     try {
-      final path = await remoteDataSource.uploadImage(
+      final fileId = await remoteDataSource.uploadImage(
         imageBytes: imageBytes,
         fileName: fileName,
         userId: userId,
       );
 
-      final publicUrl = await remoteDataSource.getPublicUrl(path);
+      final publicUrl =
+          '${AppConstants.appwriteEndpoint}/storage/buckets/${AppConstants.actasBucketId}/files/$fileId/view?project=${AppConstants.appwriteProjectId}';
 
       final acta = ActaEntity(
-        id: path,
+        id: fileId,
         userId: userId,
         imageUrl: publicUrl,
         status: 'uploaded',
@@ -77,7 +79,6 @@ class ActaRepositoryImpl implements ActaRepository {
         ));
       }
 
-      // Placeholder para OCR - retorna estructura mock
       final mockData = <String, dynamic>{
         'nitidez': variance,
         'estado': 'pendiente_ocr',
